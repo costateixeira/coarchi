@@ -1,4 +1,5 @@
 name: Model diff
+
 on:
   pull_request:
     paths: ["**/*.archimate"]
@@ -14,12 +15,20 @@ jobs:
   diff:
     runs-on: ubuntu-latest
     env:
-      MODEL: model.archimate   # adjust to the actual path in your repo
+      MODEL: model.archimate   # path of the model file in the repo; adjust if different
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
 
-      - name: Build summaries
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Build model diff
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             OLD=${{ github.event.pull_request.base.sha }}
@@ -28,17 +37,35 @@ jobs:
             OLD=${{ github.event.before }}
             NEW=${{ github.sha }}
           fi
-          git show "$OLD:$MODEL" > old.archimate 2>/dev/null || echo '<archimate:model xmlns:archimate="http://www.archimatetool.com/archimate"/>' > old.archimate
+
+          # Old side: fall back to an empty model if the file didn't exist yet
+          git show "$OLD:$MODEL" > old.archimate 2>/dev/null \
+            || echo '<archimate:model xmlns:archimate="http://www.archimatetool.com/archimate"/>' > old.archimate
           git show "$NEW:$MODEL" > new.archimate
-          python3 tools/summarize_archimate.py old.archimate > old.txt
-          python3 tools/summarize_archimate.py new.archimate > new.txt
-          diff -u old.txt new.txt > model.diff || true
-          { echo '### Model changes'; echo '```diff'; head -c 60000 model.diff; echo '```'; } > body.md
+
+          python3 tools/archimate_tool.py diff old.archimate new.archimate > model.diff.yml
+
+          {
+            echo '### Model changes'
+            echo '```yaml'
+            head -c 60000 model.diff.yml
+            echo
+            echo '```'
+          } > body.md
 
       - name: Job summary
         run: cat body.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: PR comment
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        env: { GH_TOKEN: "${{ github.token }}" }
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: gh pr comment ${{ github.event.pull_request.number }} --body-file body.md --edit-last --create-if-none
+
+      # Optional: keep the full canonical snapshot as a downloadable build artifact
+      # - name: Build canonical summary
+      #   run: python3 tools/archimate_tool.py summary new.archimate > summary.yml
+      # - uses: actions/upload-artifact@v4
+      #   with:
+      #     name: model-summary
+      #     path: summary.yml
