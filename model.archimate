@@ -3,7 +3,6 @@
   <folder name="Strategy" id="id-a0b1f14183434dddbaf342f537a8cbdf" type="strategy"/>
   <folder name="Business" id="id-e97e92922255449e8fa758cf50b14f48" type="business">
     <element xsi:type="archimate:BusinessObject" name="Business Object" id="id-402e61fca67b4a80b0e9c61160598998"/>
-    <element xsi:type="archimate:BusinessActor" name="Business Actor" id="id-3c4c2a5a024e4fb092ea650b6dd38523"/>
   </folder>
   <folder name="Application" id="id-8c73ceb8381f4822867c2f0573996dce" type="application">
     <element xsi:type="archimate:DataObject" name="Data Object" id="id-14fc9721b5814c26992ee3f9f443a72a"/>
@@ -21,7 +20,6 @@
     <element xsi:type="archimate:RealizationRelationship" id="id-62919ecde9bb4c6ab5d22fb41636502c" source="id-2498ba02fc5c49fbbff54026950aebf0" target="id-21b7c2493f5a45dca923dba6e9ede48c"/>
     <element xsi:type="archimate:AccessRelationship" id="id-6543292f4c3344a5ac698d1213ad8813" source="id-21b7c2493f5a45dca923dba6e9ede48c" target="id-14fc9721b5814c26992ee3f9f443a72a"/>
     <element xsi:type="archimate:RealizationRelationship" id="id-19e8ca37fc564ae98865074baec3ee86" source="id-2498ba02fc5c49fbbff54026950aebf0" target="id-07824e4f3ee04055ad987f5be93e6c2f"/>
-    <element xsi:type="archimate:ServingRelationship" id="id-4a58780073db41dab4fbc20bef19c718" source="id-07824e4f3ee04055ad987f5be93e6c2f" target="id-3c4c2a5a024e4fb092ea650b6dd38523"/>
   </folder>
   <folder name="Views" id="id-925cc19c006445f9af727ae9891dace8" type="diagrams">
     <element xsi:type="archimate:ArchimateDiagramModel" name="Default View" id="id-ac948d3309b94f16a67bdcae696a99cf">
