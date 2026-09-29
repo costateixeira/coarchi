@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <archimate:model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:archimate="http://www.archimatetool.com/archimate" name="(new model)" id="id-352b2e25324a4a08bf76ad640aae6061" version="5.0.0">
   <folder name="Strategy" id="id-a0b1f14183434dddbaf342f537a8cbdf" type="strategy"/>
-  <folder name="Business" id="id-e97e92922255449e8fa758cf50b14f48" type="business"/>
+  <folder name="Business" id="id-e97e92922255449e8fa758cf50b14f48" type="business">
+    <element xsi:type="archimate:BusinessObject" name="Business Object" id="id-402e61fca67b4a80b0e9c61160598998"/>
+  </folder>
   <folder name="Application" id="id-8c73ceb8381f4822867c2f0573996dce" type="application">
     <element xsi:type="archimate:DataObject" name="Data Object" id="id-14fc9721b5814c26992ee3f9f443a72a"/>
   </folder>
@@ -9,11 +11,17 @@
   <folder name="Motivation" id="id-4667e751bc424797be0d92acab1bef0b" type="motivation"/>
   <folder name="Implementation &amp; Migration" id="id-df16ea4a6f5446ec977fe12181485ef8" type="implementation_migration"/>
   <folder name="Other" id="id-85b8a2f34d2947bfa2b4ff5dabad3afb" type="other"/>
-  <folder name="Relations" id="id-6f2c37bba9df422b87c64e068b100ba0" type="relations"/>
+  <folder name="Relations" id="id-6f2c37bba9df422b87c64e068b100ba0" type="relations">
+    <element xsi:type="archimate:RealizationRelationship" id="id-5008adaccdc845fcb03b299bce46035b" source="id-14fc9721b5814c26992ee3f9f443a72a" target="id-402e61fca67b4a80b0e9c61160598998"/>
+  </folder>
   <folder name="Views" id="id-925cc19c006445f9af727ae9891dace8" type="diagrams">
     <element xsi:type="archimate:ArchimateDiagramModel" name="Default View" id="id-ac948d3309b94f16a67bdcae696a99cf">
       <child xsi:type="archimate:DiagramObject" id="id-3794039ae477435eba7b37e4707107d8" archimateElement="id-14fc9721b5814c26992ee3f9f443a72a">
         <bounds x="321" y="174" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-853066f4f06c48de866f7d29dfeec405" source="id-3794039ae477435eba7b37e4707107d8" target="id-4ef3718f54a94e968474ac77a34235c5" archimateRelationship="id-5008adaccdc845fcb03b299bce46035b"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-4ef3718f54a94e968474ac77a34235c5" targetConnections="id-853066f4f06c48de866f7d29dfeec405" archimateElement="id-402e61fca67b4a80b0e9c61160598998">
+        <bounds x="290" y="73" width="120" height="55"/>
       </child>
     </element>
   </folder>
