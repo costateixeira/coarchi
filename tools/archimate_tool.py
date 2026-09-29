@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Diff-friendly YAML views of an .archimate file.
+"""Canonical, diff-friendly YAML views of an .archimate file.
 
-  archimate_tool.py summary model.archimate            -> nested YAML summary
+  archimate_tool.py summary model.archimate            -> canonical YAML snapshot
   archimate_tool.py diff old.archimate new.archimate   -> nested YAML change report
 
-Layout/coordinates are ignored on purpose. Objects are matched by id, so
-renames and moved folders are reported as changes, not remove+add.
+Canonical form: every list is ordered by the object's full id (not by name), so a
+rename never moves a line. Names stay visible; ids are kept as the last field.
+Layout/coordinates are ignored on purpose. Objects are matched by id.
 """
 import re, sys
 import xml.etree.ElementTree as ET
@@ -41,8 +42,11 @@ def layer_of(t):
             return lay
     return "Other"
 
+def bare(i):
+    return (i or "").replace("id-", "", 1)
+
 def sid(i):
-    return (i or "").replace("id-", "")[:8]
+    return bare(i)[:8]
 
 def walk(node, out):
     for ch in node:
@@ -98,15 +102,18 @@ def node_name(m, i):
         return f"({m['relations'][i]['type']} relation)"
     return "?"
 
-def elabel(m, i):
-    return f"{m['elements'][i]['name']} [{sid(i)}]" if i in m["elements"] else f"? [{sid(i)}]"
-
-def rlabel(m, i):
+def rtext(m, i):
     r = m["relations"].get(i)
     if r is None:
-        return f"? [{sid(i)}]"
+        return "?"
     nm = f" '{r['name']}'" if r["name"] else ""
-    return f"{node_name(m, r['src'])} --{r['type']}--> {node_name(m, r['tgt'])}{nm} [{sid(i)}]"
+    return f"{node_name(m, r['src'])} --{r['type']}--> {node_name(m, r['tgt'])}{nm}"
+
+def elabel(m, i):
+    return f"{node_name(m, i)} [{sid(i)}]"
+
+def rlabel(m, i):
+    return f"{rtext(m, i)} [{sid(i)}]"
 
 def vlabel(m, i):
     return f"{m['views'][i]['name']} [{sid(i)}]"
@@ -115,21 +122,39 @@ def extra(rec):
     return {k: rec[k] for k in ("doc", "props") if k in rec}
 
 
+class Flow(dict):
+    """Rendered as a one-line YAML flow mapping: one object per line."""
+
+class _Dumper(yaml.SafeDumper):
+    def increase_indent(self, flow=False, indentless=False):
+        return super().increase_indent(flow, False)
+
+_Dumper.add_representer(
+    Flow, lambda d, data: d.represent_mapping("tag:yaml.org,2002:map", data, flow_style=True))
+
+
+def dump(obj):
+    return yaml.dump(obj, Dumper=_Dumper, sort_keys=False, allow_unicode=True,
+                     default_flow_style=False, width=100000)
+
+
 def summary(m):
-    out = {"model": m["name"], "elements": {}, "relations": {}, "views": {}}
-    for i, e in sorted(m["elements"].items(),
-                       key=lambda kv: (LAYERS.index(kv[1]["layer"]), kv[1]["type"], kv[1]["name"], kv[0])):
-        out["elements"].setdefault(e["layer"], {}).setdefault(e["type"], {})[elabel(m, i)] = extra(e)
-    for i in sorted(m["relations"], key=lambda i: rlabel(m, i)):
-        out["relations"][rlabel(m, i)] = extra(m["relations"][i])
-    for i in sorted(m["views"], key=lambda i: vlabel(m, i)):
-        v = m["views"][i]
-        out["views"][vlabel(m, i)] = {
-            **extra(v),
-            "elements": sorted(elabel(m, x) for x in v["elements"]),
-            "relations": sorted(rlabel(m, x) for x in v["relations"]),
-        }
-    return out
+    """Canonical snapshot: sections in fixed order, every list ordered by full id."""
+    return {
+        "model": m["name"],
+        "elements": [Flow(layer=e["layer"], type=e["type"], name=e["name"],
+                          **extra(e), id=bare(i))
+                     for i, e in sorted(m["elements"].items())],
+        "relations": [Flow(type=r["type"], **{"from": node_name(m, r["src"])},
+                           to=node_name(m, r["tgt"]),
+                           **({"name": r["name"]} if r["name"] else {}),
+                           **extra(r), id=bare(i))
+                      for i, r in sorted(m["relations"].items())],
+        "views": [{"name": v["name"], **extra(v), "id": bare(i),
+                   "elements": [node_name(m, x) for x in sorted(v["elements"])],
+                   "relations": [rtext(m, x) for x in sorted(v["relations"])]}
+                  for i, v in sorted(m["views"].items())],
+    }
 
 
 def arrow(a, b):
@@ -146,8 +171,12 @@ def field_changes(o, n, fields):
         ch["props"] = pc
     return ch
 
+def by_layer(d):
+    return {lay: {t: d[lay][t] for t in sorted(d[lay])} for lay in sorted(d, key=LAYERS.index)}
+
 
 def diff(old, new):
+    """Change report; every list/mapping is ordered by object id."""
     rep = {}
 
     # elements
@@ -162,31 +191,30 @@ def diff(old, new):
         ch = field_changes(old["elements"][i], new["elements"][i], ["name", "layer", "type", "doc"])
         if ch:
             changed[elabel(new, i)] = ch
-    sec = {k: v for k, v in (("added", added), ("removed", removed), ("changed", changed)) if v}
-    for d in (added, removed):
-        for lay in d:
-            for t in d[lay]:
-                d[lay][t].sort()
+    sec = {}
+    if added: sec["added"] = by_layer(added)
+    if removed: sec["removed"] = by_layer(removed)
+    if changed: sec["changed"] = changed
     if sec:
         rep["elements"] = sec
 
     # relations
     sec = {}
-    a = sorted(rlabel(new, i) for i in set(new["relations"]) - set(old["relations"]))
-    r = sorted(rlabel(old, i) for i in set(old["relations"]) - set(new["relations"]))
+    a = [rlabel(new, i) for i in sorted(set(new["relations"]) - set(old["relations"]))]
+    r = [rlabel(old, i) for i in sorted(set(old["relations"]) - set(new["relations"]))]
     c = {}
-    for i in set(old["relations"]) & set(new["relations"]):
+    for i in sorted(set(old["relations"]) & set(new["relations"])):
         o, n = old["relations"][i], new["relations"][i]
         ch = field_changes(o, n, ["type", "src", "tgt", "name", "doc"])
-        for k in ("src", "tgt"):
+        for k, label in (("src", "source"), ("tgt", "target")):
             if k in ch:
-                ch[{"src": "source", "tgt": "target"}[k]] = arrow(node_name(old, o[k]), node_name(new, n[k]))
+                ch[label] = arrow(node_name(old, o[k]), node_name(new, n[k]))
                 del ch[k]
         if ch:
             c[rlabel(new, i)] = ch
     if a: sec["added"] = a
     if r: sec["removed"] = r
-    if c: sec["changed"] = dict(sorted(c.items()))
+    if c: sec["changed"] = c
     if sec:
         rep["relations"] = sec
 
@@ -195,36 +223,26 @@ def diff(old, new):
     va = {}
     for i in sorted(set(new["views"]) - set(old["views"])):
         v = new["views"][i]
-        va[vlabel(new, i)] = {"elements": sorted(elabel(new, x) for x in v["elements"]),
-                              "relations": sorted(rlabel(new, x) for x in v["relations"])}
-    vr = sorted(vlabel(old, i) for i in set(old["views"]) - set(new["views"]))
+        va[vlabel(new, i)] = {"elements": [elabel(new, x) for x in sorted(v["elements"])],
+                              "relations": [rlabel(new, x) for x in sorted(v["relations"])]}
+    vr = [vlabel(old, i) for i in sorted(set(old["views"]) - set(new["views"]))]
     vc = {}
-    for i in set(old["views"]) & set(new["views"]):
+    for i in sorted(set(old["views"]) & set(new["views"])):
         o, n = old["views"][i], new["views"][i]
         ch = field_changes(o, n, ["name", "doc"])
         for kind, lab in (("elements", elabel), ("relations", rlabel)):
-            ad = sorted(lab(new, x) for x in n[kind] - o[kind])
-            rm = sorted(lab(old, x) for x in o[kind] - n[kind])
+            ad = [lab(new, x) for x in sorted(n[kind] - o[kind])]
+            rm = [lab(old, x) for x in sorted(o[kind] - n[kind])]
             if ad or rm:
                 ch[kind] = {**({"added": ad} if ad else {}), **({"removed": rm} if rm else {})}
         if ch:
             vc[vlabel(new, i)] = ch
     if va: sec["added"] = va
     if vr: sec["removed"] = vr
-    if vc: sec["changed"] = dict(sorted(vc.items()))
+    if vc: sec["changed"] = vc
     if sec:
         rep["views"] = sec
     return rep
-
-
-class _Dumper(yaml.SafeDumper):
-    def increase_indent(self, flow=False, indentless=False):
-        return super().increase_indent(flow, False)
-
-
-def dump(obj):
-    return yaml.dump(obj, Dumper=_Dumper, sort_keys=False, allow_unicode=True,
-                     default_flow_style=False, width=10000)
 
 
 def main(argv):
