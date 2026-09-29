@@ -17,7 +17,7 @@
   <folder name="Views" id="id-925cc19c006445f9af727ae9891dace8" type="diagrams">
     <element xsi:type="archimate:ArchimateDiagramModel" name="Default View" id="id-ac948d3309b94f16a67bdcae696a99cf">
       <child xsi:type="archimate:DiagramObject" id="id-3794039ae477435eba7b37e4707107d8" archimateElement="id-14fc9721b5814c26992ee3f9f443a72a">
-        <bounds x="321" y="174" width="120" height="55"/>
+        <bounds x="300" y="240" width="120" height="55"/>
         <sourceConnection xsi:type="archimate:Connection" id="id-853066f4f06c48de866f7d29dfeec405" source="id-3794039ae477435eba7b37e4707107d8" target="id-4ef3718f54a94e968474ac77a34235c5" archimateRelationship="id-5008adaccdc845fcb03b299bce46035b"/>
       </child>
       <child xsi:type="archimate:DiagramObject" id="id-4ef3718f54a94e968474ac77a34235c5" targetConnections="id-853066f4f06c48de866f7d29dfeec405" archimateElement="id-402e61fca67b4a80b0e9c61160598998">
