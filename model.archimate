@@ -43,10 +43,6 @@
       </child>
       <child xsi:type="archimate:DiagramObject" id="id-57388e86cdc8424487d8a4e64af659dc" targetConnections="id-cbb5d367877249cc8a685b8b20c36e07" archimateElement="id-07824e4f3ee04055ad987f5be93e6c2f">
         <bounds x="874" y="114" width="120" height="55"/>
-        <sourceConnection xsi:type="archimate:Connection" id="id-8ec750e462be46dab0f89d652c232e0f" source="id-57388e86cdc8424487d8a4e64af659dc" target="id-76bf0c5121044377b0c553c58acd25ca" archimateRelationship="id-4a58780073db41dab4fbc20bef19c718"/>
-      </child>
-      <child xsi:type="archimate:DiagramObject" id="id-76bf0c5121044377b0c553c58acd25ca" targetConnections="id-8ec750e462be46dab0f89d652c232e0f" archimateElement="id-3c4c2a5a024e4fb092ea650b6dd38523">
-        <bounds x="1341" y="146" width="120" height="55"/>
       </child>
     </element>
   </folder>
